@@ -1,2 +1,9 @@
 migrations/*
 db.sqlite3
+.idea
+
+# Ignore Django migrations everywhere, but keep __init__.py so Python packages remain
+**/migrations/*
+!**/migrations/__init__.py
+# optionally ignore compiled Python files inside migrations
+**/migrations/*.pyc
