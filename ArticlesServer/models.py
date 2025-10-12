@@ -11,3 +11,9 @@ class Article(models.Model, DTOMixin):
 
     def __str__(self):
         return self.title
+
+    class Meta:
+        verbose_name = 'Article'
+        verbose_name_plural = 'Articles'
+        ordering = ['-created_at']
+        db_table = 'articles'
