@@ -8,4 +8,4 @@ class ArticleDTO:
     id: uuid.UUID
     title: str
     content: str
-    created_at: datetime.datetime
+    created_at: datetime
