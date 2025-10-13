@@ -18,3 +18,8 @@ class ArticleService:
 
         article: ArticleDTO = self.repository.get_by_id(article_id).to_dto(ArticleDTO)
         return Ok(article)
+
+    def get_articles(self) -> Result[list[ArticleDTO], str]:
+        articles = self.repository.get()
+        dtos = [article.to_dto(ArticleDTO) for article in articles]
+        return Ok(dtos)
