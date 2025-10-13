@@ -112,3 +112,38 @@ def test_get_article_returns_existing_article_ok():
     assert dto.title == obj.title
     assert dto.content == obj.content
     assert dto.created_at == obj.created_at
+
+@pytest.mark.django_db
+def test_get_articles_returns_all():
+    """Verifica que el servicio devuelva todos los artículos creados.
+
+    - Crea varios artículos en la base de datos.
+    - Llama al método del servicio para obtener todos los artículos.
+    - Verifica que la cantidad y los datos coincidan.
+    """
+    from ArticlesServer.models import Article
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+
+    articles_data = [
+        {"title": "Article 1", "content": "Content 1", "author": "Author 1"},
+        {"title": "Article 2", "content": "Content 2", "author": "Author 2"},
+        {"title": "Article 3", "content": "Content 3", "author": "Author 3"},
+    ]
+
+    created_articles = [Article.objects.create(**data) for data in articles_data]
+
+    result = service.get_articles()
+
+    assert result.err() is None, f"No se esperaba error, pero se obtuvo: {result.err()}"
+    dtos = result.ok()
+    assert dtos is not None, "Se esperaba una lista de DTOs en Ok()"
+    assert len(dtos) == len(created_articles), (
+        f"Se esperaban {len(created_articles)} artículos, pero se obtuvieron {len(dtos)}"
+    )
+
+    for dto, article in zip(dtos, created_articles):
+        assert dto.id == article.id
+        assert dto.title == article.title
+        assert dto.content == article.content
