@@ -2,17 +2,19 @@ import uuid
 
 from result import Result, Err, Ok
 
-from ArticlesServer.models import Article
-from ArticlesServer.repository import ArticleDTO
+from ArticlesServer.dtos import ArticleDTO
+from ArticlesServer.repository import ArticleRepository
 
 
 class ArticleService:
-    @staticmethod
-    def get_article(article_id: uuid.UUID) -> Result[ArticleDTO, str]:
+    def __init__(self):
+        self.repository = ArticleRepository()
+
+    def get_article(self, article_id: uuid.UUID) -> Result[ArticleDTO, str]:
         if not isinstance(article_id, uuid.UUID):
             return Err("Invalid UUID: article_id must be a UUID")
-        if not Article.objects.filter(id=article_id).exists():
+        if not self.repository.get_by_id(article_id):
             return Err("Invalid UUID: article_id does not exist")
 
-        article: ArticleDTO = Article.objects.get(id=article_id).to_dto(ArticleDTO)
+        article: ArticleDTO = self.repository.get_by_id(article_id).to_dto(ArticleDTO)
         return Ok(article)
