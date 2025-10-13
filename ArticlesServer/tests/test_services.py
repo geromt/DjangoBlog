@@ -58,10 +58,10 @@ def test_article_service_get_article_returns_error():
     """
     from ArticlesServer import services
 
-    articles_service = services.ArticleService
+    service = services.ArticleService()
 
     non_existent_id = uuid.UUID('00000000-0000-0000-0000-000000000000')  # UUID que no debería existir
-    result = articles_service.get_article(non_existent_id)
+    result = service.get_article(non_existent_id)
     assert result.err() is not None, "get_article debería devolver un error para un ID no existente"
 
 
@@ -73,10 +73,10 @@ def test_get_article_invalid_uuid_returns_error():
     """
     from ArticlesServer import services
 
-    ArticleService = services.ArticleService
+    service = services.ArticleService()
     invalid_id = 'not-a-uuid'  # Any para evitar advertencia de tipo estático
 
-    result = ArticleService.get_article(invalid_id)
+    result = service.get_article(invalid_id)
     assert result.err() is not None, "get_article debería devolver un error para un ID no válido"
     assert "Invalid UUID" in result.err(), (
         "El error devuelto debería indicar que el UUID es inválido"
@@ -93,13 +93,15 @@ def test_get_article_returns_existing_article_ok():
     from ArticlesServer.models import Article
     from ArticlesServer import services
 
+    service = services.ArticleService()
+
     auto_title = "Test Article"
     auto_content = "Lorem ipsum dolor sit amet"
     auto_author = "Tester"
 
     obj = Article.objects.create(title=auto_title, content=auto_content, author=auto_author)
 
-    result = services.ArticleService.get_article(obj.id)
+    result = service.get_article(obj.id)
 
     # Debe ser éxito (Ok)
     assert result.err() is None, f"No se esperaba error, pero se obtuvo: {result.err()}"
