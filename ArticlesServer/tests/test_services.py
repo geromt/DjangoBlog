@@ -143,7 +143,9 @@ def test_get_articles_returns_all():
         f"Se esperaban {len(created_articles)} artículos, pero se obtuvieron {len(dtos)}"
     )
 
-    for dto, article in zip(dtos, created_articles):
+    for article in created_articles:
+        dto = next((d for d in dtos if d.id == article.id), None)
+        assert dto is not None, f"No se encontró DTO para el artículo con id {article}.id"
         assert dto.id == article.id
         assert dto.title == article.title
         assert dto.content == article.content
