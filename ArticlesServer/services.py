@@ -35,3 +35,15 @@ class ArticleService:
         article = self.repository.create(title=title, content=content, author=author)
         dto = article.to_dto(ArticleDTO)
         return Ok(dto)
+
+    def update_article(self, article_id: uuid.UUID, title: str = None, content: str = None, author: str = None) -> Result[ArticleDTO, str]:
+        if not article_id:
+            return Err("article_id is required")
+        if not isinstance(article_id, uuid.UUID):
+            return Err("Invalid UUID: article_id must be a UUID")
+        if not self.repository.get_by_id(article_id):
+            return Err("Invalid UUID: article_id does not exist")
+
+        article = self.repository.update(article_id, title=title, content=content, author=author)
+        dto = article.to_dto(ArticleDTO)
+        return Ok(dto)
