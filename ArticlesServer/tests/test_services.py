@@ -382,3 +382,77 @@ def test_delete_article_service_method_exists():
     sig = inspect.signature(delete_article)
     if 'article_id' not in sig.parameters:
         pytest.fail("delete_article no acepta un parámetro 'article_id'")
+
+@pytest.mark.django_db
+def test_delete_article_no_article_id_returns_error():
+    """Verifica que `delete_article` devuelva un error cuando no se le pasa un ID.
+
+    - El servicio actual debería devolver Err con un mensaje indicando el problema.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+
+    result = service.delete_article(article_id=None)
+    assert result.err() is not None, "delete_article debería devolver un error si no se proporciona article_id"
+    assert "article_id is required" in result.err(), "El mensaje de error debería indicar que article_id es requerido"
+
+@pytest.mark.django_db
+def test_delete_article_no_valid_uuid_returns_error():
+    """Verifica que `delete_article` devuelva un error si el id no es un UUID válido.
+
+    - El servicio actual devuelve Err con un mensaje indicando el problema.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+    invalid_id = 'not-a-uuid'  # Any para evitar advertencia de tipo estático
+
+    result = service.delete_article(article_id=invalid_id)
+    assert result.err() is not None, "delete_article debería devolver un error para un ID no válido"
+    assert "Invalid UUID" in result.err(), "El error devuelto debería indicar que el UUID es inválido"
+
+@pytest.mark.django_db
+def test_delete_article_no_existent_id_returns_error():
+    """Verifica que `delete_article` devuelva un error cuando se le pasa un ID no existente.
+
+    - Usamos un UUID válido pero que no debería existir en la BD.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+
+    non_existent_id = uuid.UUID('00000000-0000-0000-0000-000000000000')  # UUID que no debería existir
+    result = service.delete_article(article_id=non_existent_id)
+    assert result.err() is not None, "delete_article debería devolver un error para un ID no existente"
+    assert "Invalid UUID" in result.err(), "El error devuelto debería indicar que el UUID no existe"
+
+@pytest.mark.django_db
+def test_delete_article_success():
+    """Verifica que `delete_article` elimine un artículo correctamente cuando se proporciona un ID válido.
+
+    - Crea un artículo en la base de datos.
+    - Llama a `delete_article` con el ID del artículo creado.
+    - Verifica que el artículo haya sido eliminado de la base de datos.
+    - El servicio debería devolver Ok con un ArticleDTO del artículo eliminado.
+    """
+    from ArticlesServer import services
+    from ArticlesServer.models import Article
+
+    service = services.ArticleService()
+    # Crear un artículo inicial
+    original_title = "Original Title"
+    original_content = "Original content."
+    original_author = "Original Author"
+
+    article = Article.objects.create(title=original_title, content=original_content, author=original_author)
+    print(article.id)
+    result = service.delete_article(article_id=article.id)
+    assert result.err() is None, f"No se esperaba error, pero se obtuvo: {result.err()}"
+    dto = result.ok()
+    assert dto is not None, "Se esperaba un DTO en Ok()"
+    assert dto.id == article.id, "El ID del DTO no coincide con el del artículo eliminado"
+
+    # Verificar que el artículo en la base de datos se haya eliminado
+    with pytest.raises(Article.DoesNotExist):
+        Article.objects.get(id=article.id)
