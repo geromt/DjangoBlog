@@ -47,3 +47,6 @@ class ArticleService:
         article = self.repository.update(article_id, title=title, content=content, author=author)
         dto = article.to_dto(ArticleDTO)
         return Ok(dto)
+
+    def delete_article(self, article_id: uuid.UUID) -> Result[ArticleDTO, str]:
+        return Err("Not implemented yet")

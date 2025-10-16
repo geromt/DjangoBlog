@@ -357,3 +357,28 @@ def test_update_article_success():
     assert article.title == new_title, "El título del artículo en la BD no se actualizó correctamente"
     assert article.content == new_content, "El contenido del artículo en la BD no se actualizó correctamente"
     assert article.author == new_author, "El autor del artículo en la BD no se actualizó correctamente"
+
+def test_delete_article_service_method_exists():
+    """Verifica que `ArticleService` tenga un método `delete_article` que acepte un parámetro `article_id`.
+
+    - Si `ArticleService` no existe, el test falla.
+    - Si `delete_article` no existe, el test falla.
+    - Si existe pero no es un método, el test falla.
+    - Si el método no acepta `article_id`, el test falla.
+    """
+    try:
+        from ArticlesServer import services
+        ArticleService = getattr(services, 'ArticleService')
+    except Exception as e:
+        pytest.fail(f"No se pudo importar ArticlesServer.services o ArticleService: {e}")
+
+    if not hasattr(ArticleService, 'delete_article'):
+        pytest.fail("delete_article no encontrado en ArticleService")
+
+    delete_article = getattr(ArticleService, 'delete_article')
+    if not inspect.isfunction(delete_article) and not inspect.ismethod(delete_article):
+        pytest.fail(f"delete_article existe pero no es un método (tipo: {type(delete_article).__name__})")
+
+    sig = inspect.signature(delete_article)
+    if 'article_id' not in sig.parameters:
+        pytest.fail("delete_article no acepta un parámetro 'article_id'")
