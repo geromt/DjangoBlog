@@ -243,3 +243,117 @@ def test_create_article_success():
     assert dto.title == title, "El título del DTO no coincide con el proporcionado"
     assert dto.content == content, "El contenido del DTO no coincide con el proporcionado"
     assert dto.author == author, "El autor del DTO no coincide con el proporcionado"
+
+def test_update_article_service_method_exists():
+    """Verifica que `ArticleService` tenga un método `update_article` que acepte parámetros necesarios.
+
+    - Si `ArticleService` no existe, el test falla.
+    - Si `update_article` no existe, el test falla.
+    - Si existe pero no es un método, el test falla.
+    - Si el método no acepta los parámetros esperados, el test falla.
+    """
+    try:
+        from ArticlesServer import services
+        ArticleService = getattr(services, 'ArticleService')
+    except Exception as e:
+        pytest.fail(f"No se pudo importar ArticlesServer.services o ArticleService: {e}")
+
+    if not hasattr(ArticleService, 'update_article'):
+        pytest.fail("update_article no encontrado en ArticleService")
+
+    update_article = getattr(ArticleService, 'update_article')
+    if not inspect.isfunction(update_article) and not inspect.ismethod(update_article):
+        pytest.fail(f"update_article existe pero no es un método (tipo: {type(update_article).__name__})")
+
+    sig = inspect.signature(update_article)
+    expected_params = {'article_id', 'title', 'content', 'author'}
+    if not expected_params.issubset(sig.parameters):
+        missing = expected_params - set(sig.parameters)
+        pytest.fail(f"update_article no acepta los parámetros esperados: {', '.join(missing)}")
+
+@pytest.mark.django_db
+def test_update_article_no_id_returns_error():
+    """Verifica que `update_article` devuelva un error cuando no se le pasa un ID.
+
+    - El servicio actual debería devolver Err con un mensaje indicando el problema.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+
+    result = service.update_article(article_id=None, title="New Title")
+    assert result.err() is not None, "update_article debería devolver un error si no se proporciona article_id"
+    assert "article_id is required" in result.err(), "El mensaje de error debería indicar que article_id es requerido"
+
+@pytest.mark.django_db
+def test_update_article_no_valid_uuid_returns_error():
+    """Verifica que `update_article` devuelva un error si el id no es un UUID válido.
+
+    - El servicio actual devuelve Err con un mensaje indicando el problema.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+    invalid_id = 'not-a-uuid'  # Any para evitar advertencia de tipo estático
+
+    result = service.update_article(article_id=invalid_id, title="New Title")
+    assert result.err() is not None, "update_article debería devolver un error para un ID no válido"
+    assert "Invalid UUID" in result.err(), "El error devuelto debería indicar que el UUID es inválido"
+
+@pytest.mark.django_db
+def test_update_article_non_existent_id_returns_error():
+    """Verifica que `update_article` devuelva un error cuando se le pasa un ID no existente.
+
+    - Usamos un UUID válido pero que no debería existir en la BD.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+
+    non_existent_id = uuid.UUID('00000000-0000-0000-0000-000000000000')  # UUID que no debería existir
+    result = service.update_article(article_id=non_existent_id, title="New Title")
+    assert result.err() is not None, "update_article debería devolver un error para un ID no existente"
+    assert "Invalid UUID" in result.err(), "El error devuelto debería indicar que el UUID no existe"
+
+@pytest.mark.django_db
+def test_update_article_success():
+    """Verifica que `update_article` actualice un artículo correctamente cuando se proporcionan datos válidos.
+
+    - Crea un artículo en la base de datos.
+    - Llama a `update_article` con nuevos datos.
+    - Verifica que el artículo se haya actualizado correctamente.
+    - El servicio debería devolver Ok con un ArticleDTO actualizado.
+    """
+    from ArticlesServer.models import Article
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+
+    # Crear un artículo inicial
+    original_title = "Original Title"
+    original_content = "Original content."
+    original_author = "Original Author"
+
+    article = Article.objects.create(title=original_title, content=original_content, author=original_author)
+
+    # Nuevos datos para actualizar
+    new_title = "Updated Title"
+    new_content = "Updated content."
+    new_author = "Updated Author"
+
+    result = service.update_article(article_id=article.id, title=new_title, content=new_content, author=new_author)
+
+    assert result.err() is None, f"No se esperaba error, pero se obtuvo: {result.err()}"
+    dto = result.ok()
+    assert dto is not None, "Se esperaba un DTO en Ok()"
+
+    assert dto.id == article.id, "El ID del DTO no coincide con el del artículo original"
+    assert dto.title == new_title, "El título del DTO no coincide con el nuevo título"
+    assert dto.content == new_content, "El contenido del DTO no coincide con el nuevo contenido"
+    assert dto.author == new_author, "El autor del DTO no coincide con el nuevo autor"
+
+    # Verificar que el artículo en la base de datos se haya actualizado
+    article.refresh_from_db()
+    assert article.title == new_title, "El título del artículo en la BD no se actualizó correctamente"
+    assert article.content == new_content, "El contenido del artículo en la BD no se actualizó correctamente"
+    assert article.author == new_author, "El autor del artículo en la BD no se actualizó correctamente"
