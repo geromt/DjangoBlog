@@ -8,4 +8,5 @@ class ArticleDTO:
     id: uuid.UUID
     title: str
     content: str
+    author: str
     created_at: datetime

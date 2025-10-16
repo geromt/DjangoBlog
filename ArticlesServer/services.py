@@ -32,4 +32,6 @@ class ArticleService:
         if not author:
             return Err("Author cannot be empty")
 
-        return Err("Not implemented yet")
+        article = self.repository.create(title=title, content=content, author=author)
+        dto = article.to_dto(ArticleDTO)
+        return Ok(dto)
