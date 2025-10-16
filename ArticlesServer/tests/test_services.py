@@ -149,3 +149,97 @@ def test_get_articles_returns_all():
         assert dto.id == article.id
         assert dto.title == article.title
         assert dto.content == article.content
+
+def test_create_article_service_method_exists():
+    """Verifica que `ArticleService` tenga un método `create_article` que acepte parámetros necesarios.
+
+    - Si `ArticleService` no existe, el test falla.
+    - Si `create_article` no existe, el test falla.
+    - Si existe pero no es un método, el test falla.
+    - Si el método no acepta los parámetros esperados, el test falla.
+    """
+    try:
+        from ArticlesServer import services
+        ArticleService = getattr(services, 'ArticleService')
+    except Exception as e:
+        pytest.fail(f"No se pudo importar ArticlesServer.services o ArticleService: {e}")
+
+    if not hasattr(ArticleService, 'create_article'):
+        pytest.fail("create_article no encontrado en ArticleService")
+
+    create_article = getattr(ArticleService, 'create_article')
+    if not inspect.isfunction(create_article) and not inspect.ismethod(create_article):
+        pytest.fail(f"create_article existe pero no es un método (tipo: {type(create_article).__name__})")
+
+    sig = inspect.signature(create_article)
+    expected_params = {'title', 'content', 'author'}
+    if not expected_params.issubset(sig.parameters):
+        missing = expected_params - set(sig.parameters)
+        pytest.fail(f"create_article no acepta los parámetros esperados: {', '.join(missing)}")
+
+@pytest.mark.django_db
+def test_create_article_no_title_returns_error():
+    """Verifica que `create_article` devuelva un error si no se proporciona un título.
+
+    - El servicio actual debería devolver Err con un mensaje indicando el problema.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+    result = service.create_article(title="", content="Some content", author="Author")
+
+    assert result.err() is not None, "Se esperaba un error al crear un artículo sin título"
+    assert "title" in result.err().lower(), "El mensaje de error debería mencionar el título"
+
+@pytest.mark.django_db
+def test_create_article_no_content_returns_error():
+    """Verifica que `create_article` devuelva un error si no se proporciona contenido.
+
+    - El servicio actual debería devolver Err con un mensaje indicando el problema.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+    result = service.create_article(title="Some title", content="", author="Author")
+
+    assert result.err() is not None, "Se esperaba un error al crear un artículo sin contenido"
+    assert "content" in result.err().lower(), "El mensaje de error debería mencionar el contenido"
+
+@pytest.mark.django_db
+def test_create_article_no_author_returns_error():
+    """Verifica que `create_article` devuelva un error si no se proporciona autor.
+
+    - El servicio actual debería devolver Err con un mensaje indicando el problema.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+    result = service.create_article(title="Some title", content="Some content", author="")
+
+    assert result.err() is not None, "Se esperaba un error al crear un artículo sin autor"
+    assert "author" in result.err().lower(), "El mensaje de error debería mencionar el autor"
+
+@pytest.mark.django_db
+def test_create_article_success():
+    """Verifica que `create_article` cree un artículo correctamente cuando se proporcionan datos válidos.
+
+    - El servicio debería devolver Ok con un ArticleDTO.
+    - Los campos del DTO deben coincidir con los datos proporcionados.
+    """
+    from ArticlesServer import services
+
+    service = services.ArticleService()
+
+    title = "Valid Title"
+    content = "Valid content for the article."
+    author = "Valid Author"
+
+    result = service.create_article(title=title, content=content, author=author)
+
+    assert result.err() is None, f"No se esperaba error, pero se obtuvo: {result.err()}"
+    dto = result.ok()
+    assert dto is not None, "Se esperaba un DTO en Ok()"
+
+    assert dto.title == title, "El título del DTO no coincide con el proporcionado"
+    assert dto.content == content, "El contenido del DTO no coincide con el proporcionado"
+    assert dto.author == author, "El autor del DTO no coincide con el proporcionado"
