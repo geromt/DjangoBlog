@@ -23,3 +23,13 @@ class ArticleService:
         articles = self.repository.get()
         dtos = [article.to_dto(ArticleDTO) for article in articles]
         return Ok(dtos)
+
+    def create_article(self, title: str, content: str, author: str) -> Result[ArticleDTO, str]:
+        if not title:
+            return Err("Title cannot be empty")
+        if not content:
+            return Err("Content cannot be empty")
+        if not author:
+            return Err("Author cannot be empty")
+
+        return Err("Not implemented yet")
