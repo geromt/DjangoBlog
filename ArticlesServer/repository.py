@@ -25,9 +25,10 @@ class ArticleRepository:
 
     def delete(self, id):
         article = self.get_by_id(id)
-        if article:
-            article.delete()
-        return article
+        if not article:
+            return False
+        article.delete()
+        return True
 
     def filter(self, **kwargs):
         return self.queryset.filter(**kwargs)
