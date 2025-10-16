@@ -49,4 +49,16 @@ class ArticleService:
         return Ok(dto)
 
     def delete_article(self, article_id: uuid.UUID) -> Result[ArticleDTO, str]:
-        return Err("Not implemented yet")
+        if not article_id:
+            return Err("article_id is required")
+        if not isinstance(article_id, uuid.UUID):
+            return Err("Invalid UUID: article_id must be a UUID")
+
+        article = self.repository.get_by_id(article_id)
+        if not article:
+            return Err("Invalid UUID: article_id does not exist")
+
+        dto = article.to_dto(ArticleDTO)
+        if not self.repository.delete(article_id):
+            return Err("Failed to delete article")
+        return Ok(dto)
